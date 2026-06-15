@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>EQWatch | Seismic Intelligence</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --bg: #0a0c12;
+            --surface: #141822;
+            --surface2: #1a1f2e;
+            --border: #252b3d;
+            --accent: #3b82f6;
+            --accent-light: #60a5fa;
+            --accent2: #06b6d4;
+            --green: #10b981;
+            --red: #ef4444;
+            --orange: #f97316;
+            --yellow: #f59e0b;
+            --text: #f8fafc;
+            --text-muted: #94a3b8;
+            --tab-h: 70px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            z-index: 30;
+        }
+        .logo {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .logo span { color: var(--text); background: none; }
+        .status-pills { display: flex; gap: 8px; }
+        .pill {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: var(--surface2);
+            color: var(--text-muted);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .pill.active { color: var(--accent); border-color: var(--accent); }
+        .pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+        .pages { flex: 1; overflow: hidden; position: relative; }
+        .page {
+            position: absolute;
+            inset: 0;
+            overflow-y: auto;
+            display: none;
+            flex-direction: column;
+        }
+        .page.active { display: flex; }
+
+        .map-container {
+            flex: 1;
+            position: relative;
+            background: var(--bg);
+            min-height: 280px;
+        }
+        #map { width: 100%; height: 100%; background: #0a0c12; }
+        .map-status {
+            position: absolute;
+            top: 12px; left: 12px;
+            font-size: 0.7rem;
+            padding: 5px 12px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 20;
+            color: var(--text-muted);
+        }
+
+        .map-legend {
+            position: absolute;
+            bottom: 20px;
+            right: 12px;
+            background: rgba(20, 24, 34, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            z-index: 20;
+            font-size: 0.7rem;
+            min-width: 220px;
+        }
+        .map-legend h4 {
+            font-size: 0.75rem;
+            margin-bottom: 8px;
+            color: var(--accent);
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+        .legend-color {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+        }
+        .legend-color.quake { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+        .legend-color.low { background: #10b981; box-shadow: 0 0 4px #10b981; }
+        .legend-color.moderate { background: #f59e0b; box-shadow: 0 0 4px #f59e0b; }
+        .legend-color.high { background: #f97316; box-shadow: 0 0 4px #f97316; }
+        .legend-color.critical { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
+        .legend-note {
+            margin-top: 8px;
+            padding-top: 6px;
+            border-top: 1px solid var(--border);
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .scroll-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stat-strip {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 14px 12px;
+            text-align: center;
+        }
+        .stat-card .val {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.3rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .stat-card .lbl {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 18px;
+        }
+        .card-title {
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--accent);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .risk-levels { display: flex; gap: 16px; flex-wrap: wrap; }
+        .risk-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.75rem;
+            padding: 6px 14px;
+            border-radius: 30px;
+            background: var(--surface2);
+        }
+        .risk-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .risk-dot.low { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .risk-dot.moderate { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
+        .risk-dot.high { background: #f97316; box-shadow: 0 0 6px #f97316; }
+        .risk-dot.critical { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+
+        .toggle-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 0;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+        }
+        .toggle-item:last-child { border-bottom: none; }
+        .toggle-label { font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+        .toggle-switch {
+            width: 48px;
+            height: 26px;
+            background: var(--border);
+            border-radius: 30px;
+            position: relative;
+            transition: 0.2s;
+        }
+        .toggle-switch.active { background: var(--accent); }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            top: 3px;
+            left: 4px;
+            transition: 0.2s;
+        }
+        .toggle-switch.active::after { left: 24px; }
+
+        .forecast-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .forecast-cell {
+            background: var(--surface2);
+            border-radius: 16px;
+            padding: 14px;
+            border-left: 3px solid;
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .forecast-cell:hover { transform: translateY(-2px); }
+        .forecast-cell .risk-pct {
+            font-family: 'Space Mono', monospace;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+        .forecast-cell .risk-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
+        .forecast-cell .mag { font-size: 0.7rem; margin-top: 8px; color: var(--text-muted); }
+
+        .province-list { display: flex; flex-direction: column; gap: 12px; }
+        .province-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        .province-count {
+            font-family: 'Space Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .chart-container { margin-top: 8px; }
+        canvas { max-height: 220px; }
+
+        .bottom-nav {
+            height: var(--tab-h);
+            padding-bottom: var(--safe-bottom);
+            background: var(--surface);
+            border-top: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            flex-shrink: 0;
+            position: relative;
+            z-index: 30;
+        }
+        .nav-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--text-muted);
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            transition: color 0.2s;
+        }
+        .nav-btn.active { color: var(--accent); }
+        .nav-btn .nav-icon { font-size: 1.4rem; }
+        .nav-btn .nav-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .chat-widget {
+            position: fixed;
+            bottom: 85px;
+            right: 20px;
+            width: 360px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            z-index: 1000;
+            transition: all 0.2s ease;
+            box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+        }
+        .chat-header {
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+        .chat-header-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .chat-resize-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 4px;
+        }
+        .chat-resize-btn:hover { color: var(--accent); }
+        .chat-status { font-size: 0.7rem; color: var(--green); display: flex; align-items: center; gap: 5px; }
+        .chat-status::before { content: '●'; font-size: 0.6rem; }
+        .chat-body { height: 400px; min-height: 200px; display: flex; flex-direction: column; }
+        .chat-widget.collapsed .chat-body { display: none; }
+        .chat-widget.collapsed { height: auto; }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .message {
+            max-width: 85%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .message.user {
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .message.bot {
+            background: var(--surface2);
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-input-area {
+            display: flex;
+            padding: 14px;
+            gap: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .chat-input {
+            flex: 1;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            padding: 10px 16px;
+            font-size: 0.85rem;
+            font-family: inherit;
+            color: var(--text);
+            outline: none;
+        }
+        .chat-input:focus { border-color: var(--accent); }
+        .chat-send {
+            background: var(--accent);
+            border: none;
+            border-radius: 30px;
+            padding: 0 22px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .download-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            color: var(--text-muted);
+            font-family: inherit;
+        }
+        .download-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+        .tip-box {
+            background: rgba(59,130,246,0.08);
+            border: 1px solid rgba(59,130,246,0.2);
+            border-radius: 14px;
+            padding: 14px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+        .tip-box strong { color: var(--accent); }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        .action-btn {
+            flex: 1;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .action-btn:hover { border-color: var(--accent); background: var(--surface); }
+        .action-btn .emoji { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+        .action-btn .text { font-size: 0.7rem; color: var(--text-muted); }
+
+        #toast {
+            position: fixed;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            padding: 12px 24px;
+            border-radius: 40px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            pointer-events: none;
+            opacity: 0;
+            transition: 0.2s;
+            z-index: 2000;
+            white-space: nowrap;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #toast.success { background: var(--green); color: #000; border: none; }
+        #toast.error { background: var(--red); color: #fff; border: none; }
+
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-track { background: var(--surface); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; }
+
+        @media (max-width: 550px) {
+            .chat-widget { width: calc(100% - 32px); right: 16px; left: 16px; bottom: 85px; max-width: none; }
+            .stat-strip { gap: 8px; }
+            .stat-card .val { font-size: 1rem; }
+            .map-legend { bottom: 80px; right: 8px; font-size: 0.6rem; min-width: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="logo">EQ<span>Watch</span></div>
+    <div class="status-pills">
+        <div class="pill" id="dataPill"><div class="dot"></div><span id="eventCount">0</span> events</div>
+        <div class="pill" id="modelPill"><div class="dot"></div>AI Ready</div>
+    </div>
+</div>
+
+<div class="pages">
+    <!-- MAP VIEW -->
+    <div class="page active" id="page-map">
+        <div class="map-container">
+            <div id="map"></div>
+            <div class="map-status" id="mapStatus">🌍 Initializing map...</div>
+            <div class="map-legend">
+                <h4>🗺️ What you're seeing</h4>
+                <div class="legend-item">
+                    <div class="legend-color quake"></div>
+                    <span>🔴 Recorded earthquake (M≥4.5)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color low"></div>
+                    <span>🟢 Low risk zone (0-15%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color moderate"></div>
+                    <span>🟡 Moderate risk (15-35%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color high"></div>
+                    <span>🟠 High risk (35-60%)</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color critical"></div>
+                    <span>🔴 Critical risk (>60%)</span>
+                </div>
+                <div class="legend-note">
+                    ⚠️ Only M≥4.5 earthquakes are shown<br>
+                    📊 Smaller quakes are in the dataset but not displayed
+                </div>
+            </div>
+        </div>
+        <div class="scroll-body">
+            <div class="stat-strip">
+                <div class="stat-card"><div class="val" id="statTotal">—</div><div class="lbl">Total Events</div></div>
+                <div class="stat-card"><div class="val" id="statMax">—</div><div class="lbl">Max Magnitude</div></div>
+                <div class="stat-card"><div class="val" id="statAvg">—</div><div class="lbl">Average</div></div>
+                <div class="stat-card"><div class="val" id="statRange">—</div><div class="lbl">Data Period</div></div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🎯 30-DAY RISK LEVELS</div>
+                <div class="risk-levels">
+                    <div class="risk-badge"><div class="risk-dot low"></div><span>Low (0-15%)</span></div>
+                    <div class="risk-badge"><div class="risk-dot moderate"></div><span>Moderate (15-35%)</span></div>
+                    <div class="risk-badge"><div class="risk-dot high"></div><span>High (35-60%)</span></div>
+                    <div class="risk-badge"><div class="risk-dot critical"></div><span>Critical (>60%)</span></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">🗺️ MAP CONTROLS</div>
+                <div class="toggle-item" onclick="toggleLayer('markers')">
+                    <span class="toggle-label">📍 Show Earthquake Markers</span>
+                    <div class="toggle-switch active" id="toggleMarkers"></div>
+                </div>
+                <div class="toggle-item" onclick="toggleLayer('predictions')">
+                    <span class="toggle-label">🧠 Show AI Risk Zones</span>
+                    <div class="toggle-switch active" id="togglePredictions"></div>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <strong>📌 What can you do?</strong><br>
+                • 🔴 Click red dots to see past earthquake details<br>
+                • 🟢🟡🟠🔴 Click colored dots to see risk forecasts<br>
+                • 💬 Ask the chatbot about specific areas or safety<br>
+                • 📊 Check Analytics for trends and patterns
+            </div>
+        </div>
+    </div>
+
+    <!-- ANALYTICS VIEW - NO TOGGLE SWITCHES -->
+    <div class="page" id="page-analytics">
+        <div class="scroll-body">
+            <div class="card">
+                <div class="card-title">📈 MONTHLY EARTHQUAKE TRENDS (2016-2026)</div>
+                <div class="chart-container">
+                    <canvas id="trendsChart"></canvas>
+                </div>
+                <div class="tip-box" style="margin-top: 12px;">
+                    📊 This chart shows how many earthquakes occurred each month. Spikes indicate increased seismic activity.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📊 MAGNITUDE DISTRIBUTION</div>
+                <div class="chart-container">
+                    <canvas id="magChart"></canvas>
+                </div>
+                <div class="tip-box" style="margin-top: 12px;">
+                    📈 Most earthquakes are small (M2-4). Larger quakes (M5+) are less frequent but more significant.
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📍 MOST AFFECTED PROVINCES</div>
+                <div class="province-list" id="provinceList">
+                    <div style="text-align:center; padding:20px; color: var(--text-muted);">Loading data...</div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-title">📏 EARTHQUAKE DEPTH ANALYSIS</div>
+                <div class="stat-strip">
+                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth</div></div>
+                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth</div></div>
+                </div>
+                <div class="tip-box" style="margin-top: 12px;">
+                    🔍 Shallower earthquakes (closer to surface) often feel stronger than deeper ones of the same magnitude.
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <div class="action-btn" onclick="switchTab('map')">
+                    <div class="emoji">🗺️</div>
+                    <div class="text">View Map</div>
+                </div>
+                <div class="action-btn" onclick="switchTab('forecast')">
+                    <div class="emoji">🤖</div>
+                    <div class="text">View Forecast</div>
+                </div>
+                <div class="action-btn" onclick="document.getElementById('chatInput').focus()">
+                    <div class="emoji">💬</div>
+                    <div class="text">Ask AI</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORECAST VIEW -->
+    <div class="page" id="page-forecast">
+        <div class="scroll-body">
+            <div class="card">
+                <div class="card-title">🤖 AI RISK FORECAST • NEXT 30 DAYS</div>
+                <div id="forecastGrid" class="forecast-grid">
+                    <div style="text-align:center; padding:30px; color: var(--text-muted);">Loading forecast model...</div>
+                </div>
+            </div>
+
+            <div class="tip-box">
+                <strong>🧠 How the AI forecast works:</strong><br>
+                Our machine learning model analyzes historical earthquake patterns across Mindanao. It calculates the probability (%) of a magnitude 4.5+ earthquake occurring in each zone over the next 30 days, based on recent seismic activity and historical patterns.
+            </div>
+
+            <div class="action-buttons">
+                <div class="action-btn" onclick="switchTab('map')">
+                    <div class="emoji">🗺️</div>
+                    <div class="text">See on Map</div>
+                </div>
+                <div class="action-btn" onclick="sendQuickQuestion('What does high risk mean?')">
+                    <div class="emoji">❓</div>
+                    <div class="text">What does risk mean?</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('map')" id="nav-map">
+        <div class="nav-icon">🗺️</div>
+        <div class="nav-label">Map</div>
+    </button>
+    <button class="nav-btn" onclick="switchTab('analytics')" id="nav-analytics">
+        <div class="nav-icon">📊</div>
+        <div class="nav-label">Analytics</div>
+    </button>
+    <button class="nav-btn" onclick="switchTab('forecast')" id="nav-forecast">
+        <div class="nav-icon">🤖</div>
+        <div class="nav-label">Forecast</div>
+    </button>
+</nav>
+
+<div class="chat-widget" id="chatWidget">
+    <div class="chat-header" onclick="toggleChat()">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span>💬 EQ Assistant</span>
+            <span class="chat-status">Online</span>
+        </div>
+        <div class="chat-header-actions">
+            <button class="chat-resize-btn" onclick="event.stopPropagation(); toggleChatSize()" title="Resize">🗖</button>
+            <button class="download-btn" onclick="event.stopPropagation(); downloadConversation()">📥 CSV</button>
+        </div>
+    </div>
+    <div class="chat-body">
+        <div class="chat-messages" id="chatMessages">
+            <div class="message bot">👋 Hello! I'm your earthquake intelligence assistant. Here's what you can do:
+
+• 🗺️ Click colored dots on the map for details
+• 📊 Check Analytics for trends and patterns
+• 🤖 Ask me anything about earthquakes
+
+Try asking: "What should I do during an earthquake?" or "Show me recent activity"</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Ask about earthquakes...">
+            <button class="chat-send" onclick="sendMessage()">Send</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+    let trendsChart = null;
+    let magChart = null;
+    let map = null;
+    let markerLayer = null;
+    let predictionLayer = null;
+    let currentStats = null;
+    let layers = { markers: true, predictions: true };
+    let conversationHistory = [];
+    let chatExpanded = true;
+
+    function showToast(msg, type) {
+        const toast = document.getElementById('toast');
+        toast.textContent = msg;
+        toast.className = `show ${type || 'info'}`;
+        setTimeout(() => toast.className = '', 3000);
+    }
+
+    function switchTab(tab) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(`page-${tab}`).classList.add('active');
+        document.getElementById(`nav-${tab}`).classList.add('active');
+        if (tab === 'analytics' && currentStats) {
+            updateCharts(currentStats);
+        }
+        if (tab === 'forecast') {
+            loadForecast();
+        }
+    }
+
+    function toggleChatSize() {
+        const chatBody = document.querySelector('.chat-body');
+        if (chatExpanded) {
+            chatBody.style.height = '250px';
+            chatExpanded = false;
+        } else {
+            chatBody.style.height = '400px';
+            chatExpanded = true;
+        }
+    }
+
+    function sendQuickQuestion(question) {
+        document.getElementById('chatInput').value = question;
+        sendMessage();
+    }
+
+    function initMap() {
+        map = L.map('map').setView([7.5, 125.0], 6.8);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '© CartoDB | © OpenStreetMap contributors',
+            subdomains: 'abcd',
+            maxZoom: 18
+        }).addTo(map);
+        document.querySelector('.map-status').textContent = '✓ Map ready';
+        markerLayer = L.layerGroup().addTo(map);
+        predictionLayer = L.layerGroup().addTo(map);
+        loadMapData();
+    }
+
+    async function loadMapData() {
+        try {
+            const sigRes = await fetch('/api/significant');
+            const sigEvents = await sigRes.json();
+            sigEvents.forEach(e => {
+                const mag = parseFloat(e.Magnitude);
+                const radius = 6 + mag / 2;
+                L.circleMarker([e.Latitude, e.Longitude], {
+                    radius: radius,
+                    color: '#ef4444',
+                    fillColor: '#ef4444',
+                    fillOpacity: 0.7,
+                    weight: 2
+                }).bindPopup(`
+                    <div style="font-family:'DM Sans'; min-width: 160px;">
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">M${mag.toFixed(1)} EARTHQUAKE</div>
+                        <div style="margin: 6px 0;">📍 ${e.Specific_Location || 'Mindanao Region'}</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">📅 ${new Date(e.Datetime).toLocaleDateString()} • 📏 ${e.Depth_In_Km}km deep</div>
+                        <hr style="margin: 6px 0; border-color: #252b3d;">
+                        <div style="font-size: 0.7rem;">💡 This is a recorded historical earthquake from PHIVOLCS data (M≥4.5).</div>
+                    </div>
+                `).addTo(markerLayer);
+            });
+            
+            const statsRes = await fetch('/api/stats');
+            currentStats = await statsRes.json();
+            updateStatsUI(currentStats);
+            document.getElementById('dataPill').querySelector('span').textContent = currentStats.total_records.toLocaleString();
+            document.getElementById('dataPill').classList.add('active');
+            document.getElementById('modelPill').classList.add('active');
+            
+            if (currentStats.monthly_trends) {
+                updateCharts(currentStats);
+            }
+        } catch(e) {
+            console.error('Map data error', e);
+            showToast('Failed to load earthquake data', 'error');
+        }
+    }
+
+    function updateStatsUI(s) {
+        document.getElementById('statTotal').textContent = s.total_records.toLocaleString();
+        document.getElementById('statMax').textContent = `M${s.max_magnitude.toFixed(1)}`;
+        document.getElementById('statAvg').textContent = s.avg_magnitude.toFixed(1);
+        const range = `${s.date_range[0].slice(0,4)}-${s.date_range[1].slice(0,4)}`;
+        document.getElementById('statRange').textContent = range;
+        document.getElementById('depthAvg').textContent = `${s.depth_avg?.toFixed(0) || '—'} km`;
+        document.getElementById('depthMax').textContent = `${s.depth_max?.toFixed(0) || '—'} km`;
+        
+        const provinceHtml = Object.entries(s.by_province).slice(0, 8).map(([name, count]) => `
+            <div class="province-item">
+                <span>📍 ${name}</span>
+                <span class="province-count">${count.toLocaleString()} events</span>
+            </div>
+        `).join('');
+        document.getElementById('provinceList').innerHTML = provinceHtml;
+    }
+
+    function updateCharts(s) {
+        if (!s.monthly_trends || !s.monthly_trends.months) return;
+        
+        const ctx1 = document.getElementById('trendsChart').getContext('2d');
+        if (trendsChart) trendsChart.destroy();
+        trendsChart = new Chart(ctx1, {
+            type: 'line',
+            data: {
+                labels: s.monthly_trends.months,
+                datasets: [{
+                    label: 'Earthquake Count',
+                    data: s.monthly_trends.counts,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointBackgroundColor: '#3b82f6'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    y: { grid: { color: '#252b3d' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8', maxRotation: 45, minRotation: 45, autoSkip: true, maxTicksLimit: 12 } }
+                }
+            }
+        });
+        
+        const ctx2 = document.getElementById('magChart').getContext('2d');
+        if (magChart) magChart.destroy();
+        magChart = new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(s.magnitude_distribution),
+                datasets: [{
+                    label: 'Frequency',
+                    data: Object.values(s.magnitude_distribution),
+                    backgroundColor: '#06b6d4',
+                    borderRadius: 8,
+                    barPercentage: 0.7
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { labels: { color: '#94a3b8' } }
+                },
+                scales: {
+                    y: { grid: { color: '#252b3d' }, ticks: { color: '#94a3b8' } },
+                    x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
+                }
+            }
+        });
+    }
+
+    async function loadForecast() {
+        try {
+            const res = await fetch('/api/predictions');
+            const data = await res.json();
+            if (data.cells && data.cells.length) {
+                const grid = document.getElementById('forecastGrid');
+                grid.innerHTML = data.cells.slice(0, 12).map(cell => {
+                    const risk = cell.risk_probability;
+                    let riskText = 'Low', color = '#10b981';
+                    if (risk > 0.6) { riskText = 'Critical'; color = '#ef4444'; }
+                    else if (risk > 0.35) { riskText = 'High'; color = '#f97316'; }
+                    else if (risk > 0.15) { riskText = 'Moderate'; color = '#f59e0b'; }
+                    return `
+                        <div class="forecast-cell" style="border-left-color: ${color}">
+                            <div class="risk-pct" style="color: ${color}">${(risk * 100).toFixed(0)}%</div>
+                            <div class="risk-label">${riskText} Risk</div>
+                            <div class="mag">📈 Expected M${cell.expected_max_magnitude.toFixed(1)}</div>
+                        </div>
+                    `;
+                }).join('');
+                
+                predictionLayer.clearLayers();
+                data.cells.forEach(cell => {
+                    const risk = cell.risk_probability;
+                    let color = '#10b981';
+                    let riskText = 'Low';
+                    let radius = 12;
+                    if (risk > 0.6) { color = '#ef4444'; riskText = 'Critical'; radius = 16; }
+                    else if (risk > 0.35) { color = '#f97316'; riskText = 'High'; radius = 14; }
+                    else if (risk > 0.15) { color = '#f59e0b'; riskText = 'Moderate'; radius = 12; }
+                    
+                    const centerLat = (cell.bounds[0][0] + cell.bounds[1][0]) / 2;
+                    const centerLon = (cell.bounds[0][1] + cell.bounds[1][1]) / 2;
+                    
+                    L.circleMarker([centerLat, centerLon], {
+                        radius: radius,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.6,
+                        weight: 2
+                    }).bindPopup(`
+                        <div style="font-family:'DM Sans'; padding: 4px;">
+                            <div style="font-weight: 700; color: ${color};">${riskText} Risk Zone</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}% probability</div>
+                            <div style="font-size: 0.75rem;">Expected M${cell.expected_max_magnitude.toFixed(1)} within 30 days</div>
+                            <hr style="margin: 6px 0; border-color: #252b3d;">
+                            <div style="font-size: 0.7rem;">💡 Higher risk means higher chance of a significant quake based on historical patterns.</div>
+                        </div>
+                    `).addTo(predictionLayer);
+                });
+            } else {
+                document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">No forecast data available.</div>';
+            }
+        } catch(e) {
+            console.error('Forecast error', e);
+            document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">Unable to load forecast</div>';
+        }
+    }
+
+    function toggleLayer(layer) {
+        const el = document.getElementById(`toggle${layer.charAt(0).toUpperCase() + layer.slice(1)}`);
+        const isActive = el.classList.contains('active');
+        if (isActive) {
+            el.classList.remove('active');
+            if (layer === 'markers' && markerLayer) map.removeLayer(markerLayer);
+            if (layer === 'predictions' && predictionLayer) map.removeLayer(predictionLayer);
+        } else {
+            el.classList.add('active');
+            if (layer === 'markers' && markerLayer) markerLayer.addTo(map);
+            if (layer === 'predictions' && predictionLayer) predictionLayer.addTo(map);
+        }
+    }
+
+    let chatOpen = true;
+    function toggleChat() {
+        chatOpen = !chatOpen;
+        document.getElementById('chatWidget').classList.toggle('collapsed', !chatOpen);
+    }
+
+    function addMessage(text, sender) {
+        const container = document.getElementById('chatMessages');
+        const div = document.createElement('div');
+        div.className = `message ${sender}`;
+        let formattedText = text;
+        formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        formattedText = formattedText.replace(/^-\s+(.*)$/gm, '• $1');
+        formattedText = formattedText.replace(/\n/g, '<br>');
+        div.innerHTML = formattedText;
+        container.appendChild(div);
+        container.scrollTop = container.scrollHeight;
+        conversationHistory.push({ role: sender, message: text, timestamp: new Date().toISOString() });
+    }
+
+    async function sendMessage() {
+        const input = document.getElementById('chatInput');
+        const msg = input.value.trim();
+        if (!msg) return;
+        addMessage(msg, 'user');
+        input.value = '';
+        
+        const loading = document.createElement('div');
+        loading.className = 'message bot';
+        loading.innerHTML = '⋯';
+        document.getElementById('chatMessages').appendChild(loading);
+        
+        try {
+            const res = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg })
+            });
+            const data = await res.json();
+            loading.remove();
+            addMessage(data.reply || 'Unable to process request.', 'bot');
+        } catch(e) {
+            loading.remove();
+            addMessage('Connection error. Please try again.', 'bot');
+            showToast('Chatbot connection failed', 'error');
+        }
+    }
+
+    function downloadConversation() {
+        if (conversationHistory.length === 0) {
+            showToast('No conversation to export', 'error');
+            return;
+        }
+        let csvRows = [['Timestamp', 'Role', 'Message']];
+        conversationHistory.forEach(msg => {
+            csvRows.push([
+                new Date(msg.timestamp).toLocaleString(),
+                msg.role,
+                `"${msg.message.replace(/"/g, '""')}"`
+            ]);
+        });
+        const csvContent = csvRows.map(row => row.join(',')).join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `eqwatch_chat_${new Date().toISOString().slice(0,19)}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        showToast(`Exported ${conversationHistory.length} messages`, 'success');
+    }
+
+    document.getElementById('chatInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+    window.onload = () => { initMap(); loadForecast(); };
+    window.switchTab = switchTab;
+    window.toggleLayer = toggleLayer;
+    window.toggleChat = toggleChat;
+    window.toggleChatSize = toggleChatSize;
+    window.sendMessage = sendMessage;
+    window.sendQuickQuestion = sendQuickQuestion;
+    window.downloadConversation = downloadConversation;
+</script>
+</body>
+</html>
