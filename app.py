@@ -11,6 +11,7 @@ import pandas as pd
 import requests
 import numpy as np
 from flask import Flask, jsonify, render_template, request
+import os
 
 from earthquake_utils import (
     compute_cell_features, cell_bounds, get_all_cells,
@@ -22,7 +23,7 @@ app = Flask(__name__)
 DATA_PATH = "data/mindanao_earthquakes_clean.csv"
 
 # --- Groq API config ---
-GROQ_API_KEY = "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"
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODEL = "llama-3.3-70b-versatile"
 
