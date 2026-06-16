@@ -198,9 +198,6 @@
             letter-spacing: 1.5px;
             color: var(--accent);
             margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
         .risk-levels { display: flex; gap: 16px; flex-wrap: wrap; }
@@ -299,7 +296,7 @@
             background: var(--surface);
             border-top: 1px solid var(--border);
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             flex-shrink: 0;
             position: relative;
             z-index: 30;
@@ -318,8 +315,8 @@
             transition: color 0.2s;
         }
         .nav-btn.active { color: var(--accent); }
-        .nav-btn .nav-icon { font-size: 1.4rem; }
-        .nav-btn .nav-label { font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+        .nav-btn .nav-icon { font-size: 1.2rem; }
+        .nav-btn .nav-label { font-size: 0.6rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
         .chat-widget {
             position: fixed;
@@ -457,8 +454,29 @@
             transition: all 0.2s;
         }
         .action-btn:hover { border-color: var(--accent); background: var(--surface); }
-        .action-btn .emoji { font-size: 1.2rem; display: block; margin-bottom: 4px; }
+        .action-btn .emoji { font-size: 1.1rem; display: block; margin-bottom: 4px; }
         .action-btn .text { font-size: 0.7rem; color: var(--text-muted); }
+
+        .about-content {
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+        .about-content p { margin-bottom: 16px; }
+        .about-content strong { color: var(--accent); }
+        .tech-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .tech-badge {
+            background: var(--surface2);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
 
         #toast {
             position: fixed;
@@ -491,6 +509,9 @@
             .stat-strip { gap: 8px; }
             .stat-card .val { font-size: 1rem; }
             .map-legend { bottom: 80px; right: 8px; font-size: 0.6rem; min-width: 180px; }
+            .bottom-nav { grid-template-columns: repeat(4, 1fr); }
+            .nav-btn .nav-icon { font-size: 1rem; }
+            .nav-btn .nav-label { font-size: 0.5rem; }
         }
     </style>
 </head>
@@ -509,32 +530,31 @@
     <div class="page active" id="page-map">
         <div class="map-container">
             <div id="map"></div>
-            <div class="map-status" id="mapStatus">🌍 Initializing map...</div>
+            <div class="map-status" id="mapStatus">Initializing map...</div>
             <div class="map-legend">
-                <h4>🗺️ What you're seeing</h4>
+                <h4>Map Legend</h4>
                 <div class="legend-item">
                     <div class="legend-color quake"></div>
-                    <span>🔴 Recorded earthquake (M≥4.5)</span>
+                    <span>Recorded earthquake (M≥4.5)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color low"></div>
-                    <span>🟢 Low risk zone (0-15%)</span>
+                    <span>Low risk zone (0-15%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color moderate"></div>
-                    <span>🟡 Moderate risk (15-35%)</span>
+                    <span>Moderate risk (15-35%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color high"></div>
-                    <span>🟠 High risk (35-60%)</span>
+                    <span>High risk (35-60%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color critical"></div>
-                    <span>🔴 Critical risk (>60%)</span>
+                    <span>Critical risk (>60%)</span>
                 </div>
                 <div class="legend-note">
-                    ⚠️ Only M≥4.5 earthquakes are shown<br>
-                    📊 Smaller quakes are in the dataset but not displayed
+                    Only M≥4.5 earthquakes are shown on the map
                 </div>
             </div>
         </div>
@@ -547,7 +567,7 @@
             </div>
 
             <div class="card">
-                <div class="card-title">🎯 30-DAY RISK LEVELS</div>
+                <div class="card-title">30-DAY RISK LEVELS</div>
                 <div class="risk-levels">
                     <div class="risk-badge"><div class="risk-dot low"></div><span>Low (0-15%)</span></div>
                     <div class="risk-badge"><div class="risk-dot moderate"></div><span>Moderate (15-35%)</span></div>
@@ -557,80 +577,62 @@
             </div>
 
             <div class="card">
-                <div class="card-title">🗺️ MAP CONTROLS</div>
+                <div class="card-title">MAP CONTROLS</div>
                 <div class="toggle-item" onclick="toggleLayer('markers')">
-                    <span class="toggle-label">📍 Show Earthquake Markers</span>
+                    <span class="toggle-label">Show Earthquake Markers</span>
                     <div class="toggle-switch active" id="toggleMarkers"></div>
                 </div>
                 <div class="toggle-item" onclick="toggleLayer('predictions')">
-                    <span class="toggle-label">🧠 Show AI Risk Zones</span>
+                    <span class="toggle-label">Show AI Risk Zones</span>
                     <div class="toggle-switch active" id="togglePredictions"></div>
                 </div>
             </div>
 
             <div class="tip-box">
-                <strong>📌 What can you do?</strong><br>
-                • 🔴 Click red dots to see past earthquake details<br>
-                • 🟢🟡🟠🔴 Click colored dots to see risk forecasts<br>
-                • 💬 Ask the chatbot about specific areas or safety<br>
-                • 📊 Check Analytics for trends and patterns
+                <strong>How to use</strong><br>
+                Click on colored dots to see details about earthquakes or risk forecasts. Use the chatbot for questions about safety or specific areas.
             </div>
         </div>
     </div>
 
-    <!-- ANALYTICS VIEW - NO TOGGLE SWITCHES -->
+    <!-- ANALYTICS VIEW -->
     <div class="page" id="page-analytics">
         <div class="scroll-body">
             <div class="card">
-                <div class="card-title">📈 MONTHLY EARTHQUAKE TRENDS (2016-2026)</div>
+                <div class="card-title">MONTHLY EARTHQUAKE TRENDS (2016-2026)</div>
                 <div class="chart-container">
                     <canvas id="trendsChart"></canvas>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
-                    📊 This chart shows how many earthquakes occurred each month. Spikes indicate increased seismic activity.
+                    This chart shows earthquake frequency per month. Spikes indicate increased seismic activity.
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">📊 MAGNITUDE DISTRIBUTION</div>
+                <div class="card-title">MAGNITUDE DISTRIBUTION</div>
                 <div class="chart-container">
                     <canvas id="magChart"></canvas>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
-                    📈 Most earthquakes are small (M2-4). Larger quakes (M5+) are less frequent but more significant.
+                    Most earthquakes are small (M2-4). Larger quakes (M5+) are less frequent.
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">📍 MOST AFFECTED PROVINCES</div>
+                <div class="card-title">MOST AFFECTED AREAS</div>
                 <div class="province-list" id="provinceList">
                     <div style="text-align:center; padding:20px; color: var(--text-muted);">Loading data...</div>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-title">📏 EARTHQUAKE DEPTH ANALYSIS</div>
+                <div class="card-title">DEPTH ANALYSIS</div>
                 <div class="stat-strip">
-                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth</div></div>
-                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth</div></div>
+                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth (km)</div></div>
+                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth (km)</div></div>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
-                    🔍 Shallower earthquakes (closer to surface) often feel stronger than deeper ones of the same magnitude.
-                </div>
-            </div>
-
-            <div class="action-buttons">
-                <div class="action-btn" onclick="switchTab('map')">
-                    <div class="emoji">🗺️</div>
-                    <div class="text">View Map</div>
-                </div>
-                <div class="action-btn" onclick="switchTab('forecast')">
-                    <div class="emoji">🤖</div>
-                    <div class="text">View Forecast</div>
-                </div>
-                <div class="action-btn" onclick="document.getElementById('chatInput').focus()">
-                    <div class="emoji">💬</div>
-                    <div class="text">Ask AI</div>
+                    Shallower earthquakes generally feel stronger than deeper ones of the same magnitude.
                 </div>
             </div>
         </div>
@@ -640,25 +642,48 @@
     <div class="page" id="page-forecast">
         <div class="scroll-body">
             <div class="card">
-                <div class="card-title">🤖 AI RISK FORECAST • NEXT 30 DAYS</div>
+                <div class="card-title">AI RISK FORECAST • NEXT 30 DAYS</div>
                 <div id="forecastGrid" class="forecast-grid">
                     <div style="text-align:center; padding:30px; color: var(--text-muted);">Loading forecast model...</div>
                 </div>
             </div>
 
             <div class="tip-box">
-                <strong>🧠 How the AI forecast works:</strong><br>
-                Our machine learning model analyzes historical earthquake patterns across Mindanao. It calculates the probability (%) of a magnitude 4.5+ earthquake occurring in each zone over the next 30 days, based on recent seismic activity and historical patterns.
+                <strong>How the AI forecast works</strong><br>
+                The machine learning model analyzes historical earthquake patterns across Mindanao to calculate the probability of a magnitude 4.5+ earthquake occurring in each zone over the next 30 days.
             </div>
+        </div>
+    </div>
 
-            <div class="action-buttons">
-                <div class="action-btn" onclick="switchTab('map')">
-                    <div class="emoji">🗺️</div>
-                    <div class="text">See on Map</div>
-                </div>
-                <div class="action-btn" onclick="sendQuickQuestion('What does high risk mean?')">
-                    <div class="emoji">❓</div>
-                    <div class="text">What does risk mean?</div>
+    <!-- ABOUT VIEW -->
+    <div class="page" id="page-about">
+        <div class="scroll-body">
+            <div class="card">
+                <div class="card-title">ABOUT EQWATCH</div>
+                <div class="about-content">
+                    <p>EQWatch is a seismic intelligence platform for Mindanao, Philippines, providing real-time earthquake monitoring and AI-based risk forecasting.</p>
+                    
+                    <p><strong>Data Source</strong><br>
+                    All earthquake data is sourced from PHIVOLCS (Philippine Institute of Volcanology and Seismology), covering records from 2016 to present.</p>
+                    
+                    <p><strong>AI Model</strong><br>
+                    Our KNN machine learning model analyzes historical patterns to estimate 30-day risk probabilities per grid cell. The model considers factors like recent earthquake frequency, magnitude trends, and depth distribution.</p>
+                    
+                    <p><strong>Limitations</strong><br>
+                    This is a statistical forecast only. Earthquake prediction is not scientifically possible. Always follow official PHIVOLCS and NDRRMC advisories for emergency response.</p>
+                    
+                    <p><strong>Technology</strong></p>
+                    <div class="tech-list">
+                        <span class="tech-badge">Flask</span>
+                        <span class="tech-badge">Python</span>
+                        <span class="tech-badge">Leaflet</span>
+                        <span class="tech-badge">Chart.js</span>
+                        <span class="tech-badge">Groq AI</span>
+                        <span class="tech-badge">Pandas</span>
+                        <span class="tech-badge">Scikit-learn</span>
+                    </div>
+                    
+                    <p style="margin-top: 16px; font-size: 0.7rem; color: var(--text-muted);">Version 1.0 | EQWatch © 2026</p>
                 </div>
             </div>
         </div>
@@ -678,31 +703,29 @@
         <div class="nav-icon">🤖</div>
         <div class="nav-label">Forecast</div>
     </button>
+    <button class="nav-btn" onclick="switchTab('about')" id="nav-about">
+        <div class="nav-icon">ℹ️</div>
+        <div class="nav-label">About</div>
+    </button>
 </nav>
 
 <div class="chat-widget" id="chatWidget">
     <div class="chat-header" onclick="toggleChat()">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <span>💬 EQ Assistant</span>
+            <span>EQ Assistant</span>
             <span class="chat-status">Online</span>
         </div>
         <div class="chat-header-actions">
             <button class="chat-resize-btn" onclick="event.stopPropagation(); toggleChatSize()" title="Resize">🗖</button>
-            <button class="download-btn" onclick="event.stopPropagation(); downloadConversation()">📥 CSV</button>
+            <button class="download-btn" onclick="event.stopPropagation(); downloadConversation()">CSV</button>
         </div>
     </div>
     <div class="chat-body">
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">👋 Hello! I'm your earthquake intelligence assistant. Here's what you can do:
-
-• 🗺️ Click colored dots on the map for details
-• 📊 Check Analytics for trends and patterns
-• 🤖 Ask me anything about earthquakes
-
-Try asking: "What should I do during an earthquake?" or "Show me recent activity"</div>
+            <div class="message bot">Hello. I'm your earthquake intelligence assistant. You can ask me about recent activity, safety protocols, or how our AI forecast works.</div>
         </div>
         <div class="chat-input-area">
-            <input type="text" class="chat-input" id="chatInput" placeholder="Ask about earthquakes...">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question...">
             <button class="chat-send" onclick="sendMessage()">Send</button>
         </div>
     </div>
@@ -752,19 +775,14 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
         }
     }
 
-    function sendQuickQuestion(question) {
-        document.getElementById('chatInput').value = question;
-        sendMessage();
-    }
-
     function initMap() {
         map = L.map('map').setView([7.5, 125.0], 6.8);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© CartoDB | © OpenStreetMap contributors',
+            attribution: '© CartoDB | OpenStreetMap',
             subdomains: 'abcd',
             maxZoom: 18
         }).addTo(map);
-        document.querySelector('.map-status').textContent = '✓ Map ready';
+        document.querySelector('.map-status').textContent = 'Map ready';
         markerLayer = L.layerGroup().addTo(map);
         predictionLayer = L.layerGroup().addTo(map);
         loadMapData();
@@ -785,11 +803,9 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
                     weight: 2
                 }).bindPopup(`
                     <div style="font-family:'DM Sans'; min-width: 160px;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">M${mag.toFixed(1)} EARTHQUAKE</div>
-                        <div style="margin: 6px 0;">📍 ${e.Specific_Location || 'Mindanao Region'}</div>
-                        <div style="font-size: 0.7rem; color: #94a3b8;">📅 ${new Date(e.Datetime).toLocaleDateString()} • 📏 ${e.Depth_In_Km}km deep</div>
-                        <hr style="margin: 6px 0; border-color: #252b3d;">
-                        <div style="font-size: 0.7rem;">💡 This is a recorded historical earthquake from PHIVOLCS data (M≥4.5).</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">M${mag.toFixed(1)} Earthquake</div>
+                        <div style="margin: 6px 0;">${e.Specific_Location || 'Mindanao Region'}</div>
+                        <div style="font-size: 0.7rem; color: #94a3b8;">${new Date(e.Datetime).toLocaleDateString()} • ${e.Depth_In_Km}km depth</div>
                     </div>
                 `).addTo(markerLayer);
             });
@@ -821,8 +837,8 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
         
         const provinceHtml = Object.entries(s.by_province).slice(0, 8).map(([name, count]) => `
             <div class="province-item">
-                <span>📍 ${name}</span>
-                <span class="province-count">${count.toLocaleString()} events</span>
+                <span>${name}</span>
+                <span class="province-count">${count.toLocaleString()}</span>
             </div>
         `).join('');
         document.getElementById('provinceList').innerHTML = provinceHtml;
@@ -906,7 +922,7 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
                         <div class="forecast-cell" style="border-left-color: ${color}">
                             <div class="risk-pct" style="color: ${color}">${(risk * 100).toFixed(0)}%</div>
                             <div class="risk-label">${riskText} Risk</div>
-                            <div class="mag">📈 Expected M${cell.expected_max_magnitude.toFixed(1)}</div>
+                            <div class="mag">Expected M${cell.expected_max_magnitude.toFixed(1)}</div>
                         </div>
                     `;
                 }).join('');
@@ -933,10 +949,8 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
                     }).bindPopup(`
                         <div style="font-family:'DM Sans'; padding: 4px;">
                             <div style="font-weight: 700; color: ${color};">${riskText} Risk Zone</div>
-                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}% probability</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}%</div>
                             <div style="font-size: 0.75rem;">Expected M${cell.expected_max_magnitude.toFixed(1)} within 30 days</div>
-                            <hr style="margin: 6px 0; border-color: #252b3d;">
-                            <div style="font-size: 0.7rem;">💡 Higher risk means higher chance of a significant quake based on historical patterns.</div>
                         </div>
                     `).addTo(predictionLayer);
                 });
@@ -992,7 +1006,7 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
         
         const loading = document.createElement('div');
         loading.className = 'message bot';
-        loading.innerHTML = '⋯';
+        loading.innerHTML = '...';
         document.getElementById('chatMessages').appendChild(loading);
         
         try {
@@ -1042,7 +1056,6 @@ Try asking: "What should I do during an earthquake?" or "Show me recent activity
     window.toggleChat = toggleChat;
     window.toggleChatSize = toggleChatSize;
     window.sendMessage = sendMessage;
-    window.sendQuickQuestion = sendQuickQuestion;
     window.downloadConversation = downloadConversation;
 </script>
 </body>
