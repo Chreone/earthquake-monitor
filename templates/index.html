@@ -111,6 +111,7 @@
             z-index: 1000;
             cursor: grab;
             user-select: none;
+            touch-action: none;
         }
         .floating-legend:active { cursor: grabbing; }
         .legend-container {
@@ -132,6 +133,7 @@
             background: rgba(0,0,0,0.3);
             cursor: grab;
             border-bottom: 1px solid var(--border);
+            touch-action: none;
         }
         .legend-header:active { cursor: grabbing; }
         .legend-header h4 {
@@ -152,6 +154,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation;
         }
         .legend-minimize-btn:hover { color: var(--accent); }
         .legend-content { padding: 10px 12px; font-size: 0.7rem; }
@@ -192,6 +195,7 @@
             cursor: grab;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3);
             border: 1px solid rgba(255,255,255,0.2);
+            touch-action: none;
         }
         .legend-minimized:active { cursor: grabbing; }
         .legend-minimized:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
@@ -775,7 +779,7 @@
     let conversationHistory = [];
     let chatExpanded = true;
 
-    // Legend drag
+    // Legend drag - works on both desktop AND mobile
     let isDragging = false;
     let dragOffsetX = 0;
     let dragOffsetY = 0;
@@ -785,48 +789,64 @@
     const legendMinimized = document.getElementById('legendMinimized');
     const minimizeBtn = document.getElementById('legendMinimizeBtn');
 
-    function startDrag(e, element) {
-        if (element === minimizeBtn) return;
+    function getPointerPosition(e) {
+        if (e.touches && e.touches.length > 0) {
+            return { clientX: e.touches[0].clientX, clientY: e.touches[0].clientY };
+        }
+        return { clientX: e.clientX, clientY: e.clientY };
+    }
+
+    function startDrag(e) {
+        if (e.target === minimizeBtn) return;
         isDragging = true;
         const rect = legend.getBoundingClientRect();
-        dragOffsetX = e.clientX - rect.left;
-        dragOffsetY = e.clientY - rect.top;
+        const pos = getPointerPosition(e);
+        dragOffsetX = pos.clientX - rect.left;
+        dragOffsetY = pos.clientY - rect.top;
         legend.style.cursor = 'grabbing';
         e.preventDefault();
         e.stopPropagation();
     }
 
-    legendHeader.addEventListener('mousedown', (e) => {
-        if (e.target === minimizeBtn) return;
-        startDrag(e, legendHeader);
-    });
-
-    legendMinimized.addEventListener('mousedown', (e) => {
-        startDrag(e, legendMinimized);
-    });
-
-    document.addEventListener('mousemove', (e) => {
+    function moveDrag(e) {
         if (!isDragging) return;
-        let newLeft = e.clientX - dragOffsetX;
-        let newTop = e.clientY - dragOffsetY;
+        const pos = getPointerPosition(e);
+        let newLeft = pos.clientX - dragOffsetX;
+        let newTop = pos.clientY - dragOffsetY;
         newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - legend.offsetWidth));
         newTop = Math.max(0, Math.min(newTop, window.innerHeight - legend.offsetHeight));
         legend.style.left = newLeft + 'px';
         legend.style.bottom = 'auto';
         legend.style.top = newTop + 'px';
-    });
+        e.preventDefault();
+    }
 
-    document.addEventListener('mouseup', () => {
+    function endDrag() {
         isDragging = false;
         legend.style.cursor = 'grab';
-    });
+    }
 
+    // Desktop mouse events
+    legendHeader.addEventListener('mousedown', startDrag);
+    legendMinimized.addEventListener('mousedown', startDrag);
+    document.addEventListener('mousemove', moveDrag);
+    document.addEventListener('mouseup', endDrag);
+
+    // Mobile touch events
+    legendHeader.addEventListener('touchstart', startDrag, { passive: false });
+    legendMinimized.addEventListener('touchstart', startDrag, { passive: false });
+    document.addEventListener('touchmove', moveDrag, { passive: false });
+    document.addEventListener('touchend', endDrag);
+    document.addEventListener('touchcancel', endDrag);
+
+    // Minimize function
     minimizeBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         legendContainer.classList.add('hidden');
         legendMinimized.classList.remove('hidden');
     });
 
+    // Restore function
     legendMinimized.addEventListener('click', (e) => {
         e.stopPropagation();
         legendContainer.classList.remove('hidden');
