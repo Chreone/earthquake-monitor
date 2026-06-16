@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>EQWatch | Seismic Intelligence</title>
+    <title>EQWatch | Seismic Pattern Analysis</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -15,7 +15,6 @@
             --surface2: #1a1f2e;
             --border: #252b3d;
             --accent: #3b82f6;
-            --accent-light: #60a5fa;
             --accent2: #06b6d4;
             --green: #10b981;
             --red: #ef4444;
@@ -94,7 +93,8 @@
         #map { width: 100%; height: 100%; background: #0a0c12; }
         .map-status {
             position: absolute;
-            top: 12px; left: 12px;
+            top: 12px;
+            left: 12px;
             font-size: 0.7rem;
             padding: 5px 12px;
             border-radius: 20px;
@@ -107,7 +107,7 @@
         .map-legend {
             position: absolute;
             bottom: 20px;
-            right: 12px;
+            left: 12px;
             background: rgba(20, 24, 34, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 12px;
@@ -115,7 +115,8 @@
             border: 1px solid var(--border);
             z-index: 20;
             font-size: 0.7rem;
-            min-width: 220px;
+            min-width: 210px;
+            max-width: 230px;
         }
         .map-legend h4 {
             font-size: 0.75rem;
@@ -132,6 +133,7 @@
             width: 14px;
             height: 14px;
             border-radius: 50%;
+            flex-shrink: 0;
         }
         .legend-color.quake { background: #ef4444; box-shadow: 0 0 4px #ef4444; }
         .legend-color.low { background: #10b981; box-shadow: 0 0 4px #10b981; }
@@ -144,7 +146,7 @@
             border-top: 1px solid var(--border);
             font-size: 0.65rem;
             color: var(--text-muted);
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
         .scroll-body {
@@ -211,10 +213,10 @@
             background: var(--surface2);
         }
         .risk-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .risk-dot.low { background: #10b981; box-shadow: 0 0 6px #10b981; }
-        .risk-dot.moderate { background: #f59e0b; box-shadow: 0 0 6px #f59e0b; }
-        .risk-dot.high { background: #f97316; box-shadow: 0 0 6px #f97316; }
-        .risk-dot.critical { background: #ef4444; box-shadow: 0 0 6px #ef4444; }
+        .risk-dot.low { background: #10b981; }
+        .risk-dot.moderate { background: #f59e0b; }
+        .risk-dot.high { background: #f97316; }
+        .risk-dot.critical { background: #ef4444; }
 
         .toggle-item {
             display: flex;
@@ -225,7 +227,7 @@
             border-bottom: 1px solid var(--border);
         }
         .toggle-item:last-child { border-bottom: none; }
-        .toggle-label { font-size: 0.85rem; font-weight: 500; display: flex; align-items: center; gap: 10px; }
+        .toggle-label { font-size: 0.85rem; font-weight: 500; }
         .toggle-switch {
             width: 48px;
             height: 26px;
@@ -248,13 +250,13 @@
         }
         .toggle-switch.active::after { left: 24px; }
 
-        .forecast-grid {
+        .pattern-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 12px;
             margin-top: 8px;
         }
-        .forecast-cell {
+        .pattern-cell {
             background: var(--surface2);
             border-radius: 16px;
             padding: 14px;
@@ -262,14 +264,14 @@
             cursor: pointer;
             transition: transform 0.15s;
         }
-        .forecast-cell:hover { transform: translateY(-2px); }
-        .forecast-cell .risk-pct {
+        .pattern-cell:hover { transform: translateY(-2px); }
+        .pattern-cell .risk-pct {
             font-family: 'Space Mono', monospace;
             font-size: 1.5rem;
             font-weight: 700;
         }
-        .forecast-cell .risk-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
-        .forecast-cell .mag { font-size: 0.7rem; margin-top: 8px; color: var(--text-muted); }
+        .pattern-cell .risk-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 5px; }
+        .pattern-cell .mag { font-size: 0.7rem; margin-top: 8px; color: var(--text-muted); }
 
         .province-list { display: flex; flex-direction: column; gap: 12px; }
         .province-item {
@@ -339,6 +341,7 @@
             border-bottom: 1px solid var(--border);
             font-weight: 600;
             font-size: 0.85rem;
+            text-decoration: none;
         }
         .chat-header-actions {
             display: flex;
@@ -438,25 +441,6 @@
         }
         .tip-box strong { color: var(--accent); }
 
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 8px;
-        }
-        .action-btn {
-            flex: 1;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .action-btn:hover { border-color: var(--accent); background: var(--surface); }
-        .action-btn .emoji { font-size: 1.1rem; display: block; margin-bottom: 4px; }
-        .action-btn .text { font-size: 0.7rem; color: var(--text-muted); }
-
         .about-content {
             font-size: 0.85rem;
             line-height: 1.6;
@@ -474,6 +458,14 @@
             background: var(--surface2);
             padding: 4px 12px;
             border-radius: 20px;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+        .creator-credit {
+            margin-top: 24px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+            text-align: center;
             font-size: 0.7rem;
             color: var(--text-muted);
         }
@@ -508,7 +500,7 @@
             .chat-widget { width: calc(100% - 32px); right: 16px; left: 16px; bottom: 85px; max-width: none; }
             .stat-strip { gap: 8px; }
             .stat-card .val { font-size: 1rem; }
-            .map-legend { bottom: 80px; right: 8px; font-size: 0.6rem; min-width: 180px; }
+            .map-legend { bottom: 80px; left: 8px; font-size: 0.6rem; min-width: 170px; }
             .bottom-nav { grid-template-columns: repeat(4, 1fr); }
             .nav-btn .nav-icon { font-size: 1rem; }
             .nav-btn .nav-label { font-size: 0.5rem; }
@@ -532,29 +524,29 @@
             <div id="map"></div>
             <div class="map-status" id="mapStatus">Initializing map...</div>
             <div class="map-legend">
-                <h4>Map Legend</h4>
+                <h4>Legend</h4>
                 <div class="legend-item">
                     <div class="legend-color quake"></div>
                     <span>Recorded earthquake (M≥4.5)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color low"></div>
-                    <span>Low risk zone (0-15%)</span>
+                    <span>Low pattern intensity (0-15%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color moderate"></div>
-                    <span>Moderate risk (15-35%)</span>
+                    <span>Moderate pattern (15-35%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color high"></div>
-                    <span>High risk (35-60%)</span>
+                    <span>High pattern (35-60%)</span>
                 </div>
                 <div class="legend-item">
                     <div class="legend-color critical"></div>
-                    <span>Critical risk (>60%)</span>
+                    <span>Elevated pattern (>60%)</span>
                 </div>
                 <div class="legend-note">
-                    Only M≥4.5 earthquakes are shown on the map
+                    Statistical pattern analysis only. Not a prediction.
                 </div>
             </div>
         </div>
@@ -567,12 +559,12 @@
             </div>
 
             <div class="card">
-                <div class="card-title">30-DAY RISK LEVELS</div>
+                <div class="card-title">PATTERN INTENSITY LEVELS (30-DAY)</div>
                 <div class="risk-levels">
                     <div class="risk-badge"><div class="risk-dot low"></div><span>Low (0-15%)</span></div>
                     <div class="risk-badge"><div class="risk-dot moderate"></div><span>Moderate (15-35%)</span></div>
                     <div class="risk-badge"><div class="risk-dot high"></div><span>High (35-60%)</span></div>
-                    <div class="risk-badge"><div class="risk-dot critical"></div><span>Critical (>60%)</span></div>
+                    <div class="risk-badge"><div class="risk-dot critical"></div><span>Elevated (>60%)</span></div>
                 </div>
             </div>
 
@@ -583,14 +575,14 @@
                     <div class="toggle-switch active" id="toggleMarkers"></div>
                 </div>
                 <div class="toggle-item" onclick="toggleLayer('predictions')">
-                    <span class="toggle-label">Show AI Risk Zones</span>
+                    <span class="toggle-label">Show Pattern Analysis</span>
                     <div class="toggle-switch active" id="togglePredictions"></div>
                 </div>
             </div>
 
             <div class="tip-box">
                 <strong>How to use</strong><br>
-                Click on colored dots to see details about earthquakes or risk forecasts. Use the chatbot for questions about safety or specific areas.
+                Click on colored dots to see details. This is statistical pattern analysis, not earthquake prediction.
             </div>
         </div>
     </div>
@@ -604,7 +596,7 @@
                     <canvas id="trendsChart"></canvas>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
-                    This chart shows earthquake frequency per month. Spikes indicate increased seismic activity.
+                    Historical frequency of recorded earthquakes per month.
                 </div>
             </div>
 
@@ -614,7 +606,7 @@
                     <canvas id="magChart"></canvas>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
-                    Most earthquakes are small (M2-4). Larger quakes (M5+) are less frequent.
+                    Most recorded earthquakes are small (M2-4). Larger events (M5+) are less frequent.
                 </div>
             </div>
 
@@ -628,8 +620,8 @@
             <div class="card">
                 <div class="card-title">DEPTH ANALYSIS</div>
                 <div class="stat-strip">
-                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth (km)</div></div>
-                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth (km)</div></div>
+                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth</div></div>
+                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth</div></div>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
                     Shallower earthquakes generally feel stronger than deeper ones of the same magnitude.
@@ -638,19 +630,19 @@
         </div>
     </div>
 
-    <!-- FORECAST VIEW -->
+    <!-- PATTERN ANALYSIS VIEW -->
     <div class="page" id="page-forecast">
         <div class="scroll-body">
             <div class="card">
-                <div class="card-title">AI RISK FORECAST • NEXT 30 DAYS</div>
-                <div id="forecastGrid" class="forecast-grid">
-                    <div style="text-align:center; padding:30px; color: var(--text-muted);">Loading forecast model...</div>
+                <div class="card-title">SEISMIC PATTERN ANALYSIS • 30-DAY</div>
+                <div id="forecastGrid" class="pattern-grid">
+                    <div style="text-align:center; padding:30px; color: var(--text-muted);">Loading pattern data...</div>
                 </div>
             </div>
 
             <div class="tip-box">
-                <strong>How the AI forecast works</strong><br>
-                The machine learning model analyzes historical earthquake patterns across Mindanao to calculate the probability of a magnitude 4.5+ earthquake occurring in each zone over the next 30 days.
+                <strong>About this analysis</strong><br>
+                This tool analyzes historical earthquake patterns to identify areas with similar seismic behavior to past events. This is a statistical pattern analysis, not a prediction. Earthquake prediction is scientifically impossible. Always follow PHIVOLCS for official information.
             </div>
         </div>
     </div>
@@ -661,16 +653,16 @@
             <div class="card">
                 <div class="card-title">ABOUT EQWATCH</div>
                 <div class="about-content">
-                    <p>EQWatch is a seismic intelligence platform for Mindanao, Philippines, providing real-time earthquake monitoring and AI-based risk forecasting.</p>
+                    <p>EQWatch is a seismic pattern analysis platform for Mindanao, Philippines, providing earthquake monitoring and statistical pattern identification based on historical PHIVOLCS data.</p>
+                    
+                    <p><strong>Important Disclaimer</strong><br>
+                    <strong>Earthquake prediction is scientifically impossible.</strong> This tool shows statistical patterns based on historical data only. It cannot and does not predict future earthquakes. Always follow official PHIVOLCS and NDRRMC advisories.</p>
                     
                     <p><strong>Data Source</strong><br>
                     All earthquake data is sourced from PHIVOLCS (Philippine Institute of Volcanology and Seismology), covering records from 2016 to present.</p>
                     
-                    <p><strong>AI Model</strong><br>
-                    Our KNN machine learning model analyzes historical patterns to estimate 30-day risk probabilities per grid cell. The model considers factors like recent earthquake frequency, magnitude trends, and depth distribution.</p>
-                    
-                    <p><strong>Limitations</strong><br>
-                    This is a statistical forecast only. Earthquake prediction is not scientifically possible. Always follow official PHIVOLCS and NDRRMC advisories for emergency response.</p>
+                    <p><strong>Methodology</strong><br>
+                    The KNN machine learning model identifies grid cells with similar seismic patterns to historically active areas. This is a retrospective pattern analysis, not a forward-looking prediction.</p>
                     
                     <p><strong>Technology</strong></p>
                     <div class="tech-list">
@@ -683,7 +675,9 @@
                         <span class="tech-badge">Scikit-learn</span>
                     </div>
                     
-                    <p style="margin-top: 16px; font-size: 0.7rem; color: var(--text-muted);">Version 1.0 | EQWatch © 2026</p>
+                    <div class="creator-credit">
+                        Created by Stephen Carl Sandig
+                    </div>
                 </div>
             </div>
         </div>
@@ -700,8 +694,8 @@
         <div class="nav-label">Analytics</div>
     </button>
     <button class="nav-btn" onclick="switchTab('forecast')" id="nav-forecast">
-        <div class="nav-icon">🤖</div>
-        <div class="nav-label">Forecast</div>
+        <div class="nav-icon">📈</div>
+        <div class="nav-label">Pattern</div>
     </button>
     <button class="nav-btn" onclick="switchTab('about')" id="nav-about">
         <div class="nav-icon">ℹ️</div>
@@ -716,13 +710,13 @@
             <span class="chat-status">Online</span>
         </div>
         <div class="chat-header-actions">
-            <button class="chat-resize-btn" onclick="event.stopPropagation(); toggleChatSize()" title="Resize">🗖</button>
+            <button class="chat-resize-btn" onclick="event.stopPropagation(); toggleChatSize()">🗖</button>
             <button class="download-btn" onclick="event.stopPropagation(); downloadConversation()">CSV</button>
         </div>
     </div>
     <div class="chat-body">
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">Hello. I'm your earthquake intelligence assistant. You can ask me about recent activity, safety protocols, or how our AI forecast works.</div>
+            <div class="message bot">Hello. I provide information about recorded earthquakes in Mindanao and statistical pattern analysis. I cannot predict earthquakes - that is scientifically impossible. Ask me about historical data, safety protocols, or how the pattern analysis works.</div>
         </div>
         <div class="chat-input-area">
             <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question...">
@@ -778,7 +772,7 @@
     function initMap() {
         map = L.map('map').setView([7.5, 125.0], 6.8);
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-            attribution: '© CartoDB | OpenStreetMap',
+            attribution: 'CartoDB | OpenStreetMap',
             subdomains: 'abcd',
             maxZoom: 18
         }).addTo(map);
@@ -803,7 +797,7 @@
                     weight: 2
                 }).bindPopup(`
                     <div style="font-family:'DM Sans'; min-width: 160px;">
-                        <div style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">M${mag.toFixed(1)} Earthquake</div>
+                        <div style="font-size: 1.1rem; font-weight: 700; color: #ef4444;">M${mag.toFixed(1)} Recorded Earthquake</div>
                         <div style="margin: 6px 0;">${e.Specific_Location || 'Mindanao Region'}</div>
                         <div style="font-size: 0.7rem; color: #94a3b8;">${new Date(e.Datetime).toLocaleDateString()} • ${e.Depth_In_Km}km depth</div>
                     </div>
@@ -915,14 +909,14 @@
                 grid.innerHTML = data.cells.slice(0, 12).map(cell => {
                     const risk = cell.risk_probability;
                     let riskText = 'Low', color = '#10b981';
-                    if (risk > 0.6) { riskText = 'Critical'; color = '#ef4444'; }
+                    if (risk > 0.6) { riskText = 'Elevated'; color = '#ef4444'; }
                     else if (risk > 0.35) { riskText = 'High'; color = '#f97316'; }
                     else if (risk > 0.15) { riskText = 'Moderate'; color = '#f59e0b'; }
                     return `
-                        <div class="forecast-cell" style="border-left-color: ${color}">
+                        <div class="pattern-cell" style="border-left-color: ${color}">
                             <div class="risk-pct" style="color: ${color}">${(risk * 100).toFixed(0)}%</div>
-                            <div class="risk-label">${riskText} Risk</div>
-                            <div class="mag">Expected M${cell.expected_max_magnitude.toFixed(1)}</div>
+                            <div class="risk-label">${riskText} Pattern</div>
+                            <div class="mag">Similar to M${cell.expected_max_magnitude.toFixed(1)} patterns</div>
                         </div>
                     `;
                 }).join('');
@@ -933,7 +927,7 @@
                     let color = '#10b981';
                     let riskText = 'Low';
                     let radius = 12;
-                    if (risk > 0.6) { color = '#ef4444'; riskText = 'Critical'; radius = 16; }
+                    if (risk > 0.6) { color = '#ef4444'; riskText = 'Elevated'; radius = 16; }
                     else if (risk > 0.35) { color = '#f97316'; riskText = 'High'; radius = 14; }
                     else if (risk > 0.15) { color = '#f59e0b'; riskText = 'Moderate'; radius = 12; }
                     
@@ -948,18 +942,20 @@
                         weight: 2
                     }).bindPopup(`
                         <div style="font-family:'DM Sans'; padding: 4px;">
-                            <div style="font-weight: 700; color: ${color};">${riskText} Risk Zone</div>
-                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}%</div>
-                            <div style="font-size: 0.75rem;">Expected M${cell.expected_max_magnitude.toFixed(1)} within 30 days</div>
+                            <div style="font-weight: 700; color: ${color};">${riskText} Pattern Area</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}% similarity</div>
+                            <div style="font-size: 0.75rem;">Similar to M${cell.expected_max_magnitude.toFixed(1)} historical patterns</div>
+                            <hr style="margin: 6px 0; border-color: #252b3d;">
+                            <div style="font-size: 0.65rem; color: #94a3b8;">Statistical pattern analysis only. Not a prediction.</div>
                         </div>
                     `).addTo(predictionLayer);
                 });
             } else {
-                document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">No forecast data available.</div>';
+                document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">No pattern data available.</div>';
             }
         } catch(e) {
-            console.error('Forecast error', e);
-            document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">Unable to load forecast</div>';
+            console.error('Pattern error', e);
+            document.getElementById('forecastGrid').innerHTML = '<div style="text-align:center; padding:30px; color: var(--text-muted);">Unable to load pattern data</div>';
         }
     }
 
