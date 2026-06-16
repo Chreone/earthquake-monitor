@@ -104,25 +104,57 @@
             color: var(--text-muted);
         }
 
-        .map-legend {
-            position: absolute;
-            bottom: 20px;
+        .floating-legend {
+            position: fixed;
+            bottom: 100px;
             left: 12px;
+            z-index: 1000;
+            cursor: grab;
+            user-select: none;
+        }
+        .floating-legend:active { cursor: grabbing; }
+        .legend-container {
             background: rgba(20, 24, 34, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 12px;
-            padding: 12px;
             border: 1px solid var(--border);
-            z-index: 20;
+            width: 210px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .legend-container.hidden { display: none; }
+        .legend-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0,0,0,0.3);
+            cursor: grab;
+            border-bottom: 1px solid var(--border);
+        }
+        .legend-header:active { cursor: grabbing; }
+        .legend-header h4 {
             font-size: 0.7rem;
-            min-width: 210px;
-            max-width: 230px;
-        }
-        .map-legend h4 {
-            font-size: 0.75rem;
-            margin-bottom: 8px;
+            font-weight: 600;
             color: var(--accent);
+            margin: 0;
         }
+        .legend-minimize-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0 4px;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .legend-minimize-btn:hover { color: var(--accent); }
+        .legend-content { padding: 10px 12px; font-size: 0.7rem; }
         .legend-item {
             display: flex;
             align-items: center;
@@ -144,10 +176,27 @@
             margin-top: 8px;
             padding-top: 6px;
             border-top: 1px solid var(--border);
-            font-size: 0.65rem;
+            font-size: 0.6rem;
             color: var(--text-muted);
             line-height: 1.3;
         }
+
+        .legend-minimized {
+            width: 44px;
+            height: 44px;
+            background: linear-gradient(135deg, #f5a623, #e67e22);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .legend-minimized:active { cursor: grabbing; }
+        .legend-minimized:hover { transform: scale(1.05); box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
+        .legend-minimized span { font-size: 1.2rem; color: white; }
+        .legend-minimized.hidden { display: none; }
 
         .scroll-body {
             flex: 1;
@@ -201,22 +250,6 @@
             color: var(--accent);
             margin-bottom: 16px;
         }
-
-        .risk-levels { display: flex; gap: 16px; flex-wrap: wrap; }
-        .risk-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.75rem;
-            padding: 6px 14px;
-            border-radius: 30px;
-            background: var(--surface2);
-        }
-        .risk-dot { width: 10px; height: 10px; border-radius: 50%; }
-        .risk-dot.low { background: #10b981; }
-        .risk-dot.moderate { background: #f59e0b; }
-        .risk-dot.high { background: #f97316; }
-        .risk-dot.critical { background: #ef4444; }
 
         .toggle-item {
             display: flex;
@@ -500,7 +533,8 @@
             .chat-widget { width: calc(100% - 32px); right: 16px; left: 16px; bottom: 85px; max-width: none; }
             .stat-strip { gap: 8px; }
             .stat-card .val { font-size: 1rem; }
-            .map-legend { bottom: 80px; left: 8px; font-size: 0.6rem; min-width: 170px; }
+            .floating-legend { bottom: 80px; left: 8px; }
+            .legend-container { width: 180px; }
             .bottom-nav { grid-template-columns: repeat(4, 1fr); }
             .nav-btn .nav-icon { font-size: 1rem; }
             .nav-btn .nav-label { font-size: 0.5rem; }
@@ -523,32 +557,6 @@
         <div class="map-container">
             <div id="map"></div>
             <div class="map-status" id="mapStatus">Initializing map...</div>
-            <div class="map-legend">
-                <h4>Legend</h4>
-                <div class="legend-item">
-                    <div class="legend-color quake"></div>
-                    <span>Recorded earthquake (M≥4.5)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color low"></div>
-                    <span>Low pattern intensity (0-15%)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color moderate"></div>
-                    <span>Moderate pattern (15-35%)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color high"></div>
-                    <span>High pattern (35-60%)</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color critical"></div>
-                    <span>Elevated pattern (>60%)</span>
-                </div>
-                <div class="legend-note">
-                    Statistical pattern analysis only. Not a prediction.
-                </div>
-            </div>
         </div>
         <div class="scroll-body">
             <div class="stat-strip">
@@ -556,16 +564,6 @@
                 <div class="stat-card"><div class="val" id="statMax">—</div><div class="lbl">Max Magnitude</div></div>
                 <div class="stat-card"><div class="val" id="statAvg">—</div><div class="lbl">Average</div></div>
                 <div class="stat-card"><div class="val" id="statRange">—</div><div class="lbl">Data Period</div></div>
-            </div>
-
-            <div class="card">
-                <div class="card-title">PATTERN INTENSITY LEVELS (30-DAY)</div>
-                <div class="risk-levels">
-                    <div class="risk-badge"><div class="risk-dot low"></div><span>Low (0-15%)</span></div>
-                    <div class="risk-badge"><div class="risk-dot moderate"></div><span>Moderate (15-35%)</span></div>
-                    <div class="risk-badge"><div class="risk-dot high"></div><span>High (35-60%)</span></div>
-                    <div class="risk-badge"><div class="risk-dot critical"></div><span>Elevated (>60%)</span></div>
-                </div>
             </div>
 
             <div class="card">
@@ -582,7 +580,8 @@
 
             <div class="tip-box">
                 <strong>How to use</strong><br>
-                Click on colored dots to see details. This is statistical pattern analysis, not earthquake prediction.
+                Click on colored dots to see details. Toggle layers on/off above.<br>
+                This is statistical pattern analysis based on historical data, not earthquake prediction.
             </div>
         </div>
     </div>
@@ -620,8 +619,8 @@
             <div class="card">
                 <div class="card-title">DEPTH ANALYSIS</div>
                 <div class="stat-strip">
-                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth</div></div>
-                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth</div></div>
+                    <div class="stat-card"><div class="val" id="depthAvg">—</div><div class="lbl">Average Depth (km)</div></div>
+                    <div class="stat-card"><div class="val" id="depthMax">—</div><div class="lbl">Maximum Depth (km)</div></div>
                 </div>
                 <div class="tip-box" style="margin-top: 12px;">
                     Shallower earthquakes generally feel stronger than deeper ones of the same magnitude.
@@ -634,7 +633,7 @@
     <div class="page" id="page-forecast">
         <div class="scroll-body">
             <div class="card">
-                <div class="card-title">SEISMIC PATTERN ANALYSIS • 30-DAY</div>
+                <div class="card-title">SEISMIC PATTERN ANALYSIS</div>
                 <div id="forecastGrid" class="pattern-grid">
                     <div style="text-align:center; padding:30px; color: var(--text-muted);">Loading pattern data...</div>
                 </div>
@@ -662,7 +661,7 @@
                     All earthquake data is sourced from PHIVOLCS (Philippine Institute of Volcanology and Seismology), covering records from 2016 to present.</p>
                     
                     <p><strong>Methodology</strong><br>
-                    The KNN machine learning model identifies grid cells with similar seismic patterns to historically active areas. This is a retrospective pattern analysis, not a forward-looking prediction.</p>
+                    The KNN machine learning model identifies regions with similar seismic patterns to historically active areas.</p>
                     
                     <p><strong>Technology</strong></p>
                     <div class="tech-list">
@@ -703,6 +702,44 @@
     </button>
 </nav>
 
+<!-- Floating Draggable Legend -->
+<div class="floating-legend" id="floatingLegend">
+    <div class="legend-container" id="legendContainer">
+        <div class="legend-header" id="legendHeader">
+            <h4>Legend</h4>
+            <button class="legend-minimize-btn" id="legendMinimizeBtn">−</button>
+        </div>
+        <div class="legend-content">
+            <div class="legend-item">
+                <div class="legend-color quake"></div>
+                <span>Recorded earthquake (M≥4.5)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color low"></div>
+                <span>Low pattern (0-15%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color moderate"></div>
+                <span>Moderate pattern (15-35%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color high"></div>
+                <span>High pattern (35-60%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color critical"></div>
+                <span>Elevated pattern (>60%)</span>
+            </div>
+            <div class="legend-note">
+                Statistical pattern analysis only. Not a prediction.
+            </div>
+        </div>
+    </div>
+    <div class="legend-minimized hidden" id="legendMinimized">
+        <span>L</span>
+    </div>
+</div>
+
 <div class="chat-widget" id="chatWidget">
     <div class="chat-header" onclick="toggleChat()">
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -716,7 +753,7 @@
     </div>
     <div class="chat-body">
         <div class="chat-messages" id="chatMessages">
-            <div class="message bot">Hello. I provide information about recorded earthquakes in Mindanao and statistical pattern analysis. I cannot predict earthquakes - that is scientifically impossible. Ask me about historical data, safety protocols, or how the pattern analysis works.</div>
+            <div class="message bot">Hello. I provide information about recorded earthquakes in Mindanao and statistical pattern analysis. I cannot predict earthquakes - that is scientifically impossible.</div>
         </div>
         <div class="chat-input-area">
             <input type="text" class="chat-input" id="chatInput" placeholder="Ask a question...">
@@ -737,6 +774,64 @@
     let layers = { markers: true, predictions: true };
     let conversationHistory = [];
     let chatExpanded = true;
+
+    // Legend drag
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    const legend = document.getElementById('floatingLegend');
+    const legendHeader = document.getElementById('legendHeader');
+    const legendContainer = document.getElementById('legendContainer');
+    const legendMinimized = document.getElementById('legendMinimized');
+    const minimizeBtn = document.getElementById('legendMinimizeBtn');
+
+    function startDrag(e, element) {
+        if (element === minimizeBtn) return;
+        isDragging = true;
+        const rect = legend.getBoundingClientRect();
+        dragOffsetX = e.clientX - rect.left;
+        dragOffsetY = e.clientY - rect.top;
+        legend.style.cursor = 'grabbing';
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    legendHeader.addEventListener('mousedown', (e) => {
+        if (e.target === minimizeBtn) return;
+        startDrag(e, legendHeader);
+    });
+
+    legendMinimized.addEventListener('mousedown', (e) => {
+        startDrag(e, legendMinimized);
+    });
+
+    document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        let newLeft = e.clientX - dragOffsetX;
+        let newTop = e.clientY - dragOffsetY;
+        newLeft = Math.max(0, Math.min(newLeft, window.innerWidth - legend.offsetWidth));
+        newTop = Math.max(0, Math.min(newTop, window.innerHeight - legend.offsetHeight));
+        legend.style.left = newLeft + 'px';
+        legend.style.bottom = 'auto';
+        legend.style.top = newTop + 'px';
+    });
+
+    document.addEventListener('mouseup', () => {
+        isDragging = false;
+        legend.style.cursor = 'grab';
+    });
+
+    minimizeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        legendContainer.classList.add('hidden');
+        legendMinimized.classList.remove('hidden');
+    });
+
+    legendMinimized.addEventListener('click', (e) => {
+        e.stopPropagation();
+        legendContainer.classList.remove('hidden');
+        legendMinimized.classList.add('hidden');
+    });
 
     function showToast(msg, type) {
         const toast = document.getElementById('toast');
@@ -863,7 +958,7 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { labels: { color: '#94a3b8' } }
+                    legend: { display: false }
                 },
                 scales: {
                     y: { grid: { color: '#252b3d' }, ticks: { color: '#94a3b8' } },
@@ -890,7 +985,7 @@
                 responsive: true,
                 maintainAspectRatio: true,
                 plugins: {
-                    legend: { labels: { color: '#94a3b8' } }
+                    legend: { display: false }
                 },
                 scales: {
                     y: { grid: { color: '#252b3d' }, ticks: { color: '#94a3b8' } },
@@ -907,29 +1002,30 @@
             if (data.cells && data.cells.length) {
                 const grid = document.getElementById('forecastGrid');
                 grid.innerHTML = data.cells.slice(0, 12).map(cell => {
-                    const risk = cell.risk_probability;
-                    let riskText = 'Low', color = '#10b981';
-                    if (risk > 0.6) { riskText = 'Elevated'; color = '#ef4444'; }
-                    else if (risk > 0.35) { riskText = 'High'; color = '#f97316'; }
-                    else if (risk > 0.15) { riskText = 'Moderate'; color = '#f59e0b'; }
+                    const sim = cell.similarity_score;
+                    let simText = 'Low', color = '#10b981';
+                    if (sim > 0.6) { simText = 'Elevated'; color = '#ef4444'; }
+                    else if (sim > 0.35) { simText = 'High'; color = '#f97316'; }
+                    else if (sim > 0.15) { simText = 'Moderate'; color = '#f59e0b'; }
                     return `
                         <div class="pattern-cell" style="border-left-color: ${color}">
-                            <div class="risk-pct" style="color: ${color}">${(risk * 100).toFixed(0)}%</div>
-                            <div class="risk-label">${riskText} Pattern</div>
-                            <div class="mag">Similar to M${cell.expected_max_magnitude.toFixed(1)} patterns</div>
+                            <div class="risk-pct" style="color: ${color}">${(sim * 100).toFixed(0)}%</div>
+                            <div class="risk-label">${simText} Pattern</div>
+                            <div class="mag">Similar to M${cell.reference_magnitude.toFixed(1)} patterns</div>
                         </div>
                     `;
                 }).join('');
                 
+                // Clear and re-add pattern dots to map
                 predictionLayer.clearLayers();
                 data.cells.forEach(cell => {
-                    const risk = cell.risk_probability;
+                    const sim = cell.similarity_score;
                     let color = '#10b981';
-                    let riskText = 'Low';
+                    let simText = 'Low';
                     let radius = 12;
-                    if (risk > 0.6) { color = '#ef4444'; riskText = 'Elevated'; radius = 16; }
-                    else if (risk > 0.35) { color = '#f97316'; riskText = 'High'; radius = 14; }
-                    else if (risk > 0.15) { color = '#f59e0b'; riskText = 'Moderate'; radius = 12; }
+                    if (sim > 0.6) { color = '#ef4444'; simText = 'Elevated'; radius = 16; }
+                    else if (sim > 0.35) { color = '#f97316'; simText = 'High'; radius = 14; }
+                    else if (sim > 0.15) { color = '#f59e0b'; simText = 'Moderate'; radius = 12; }
                     
                     const centerLat = (cell.bounds[0][0] + cell.bounds[1][0]) / 2;
                     const centerLon = (cell.bounds[0][1] + cell.bounds[1][1]) / 2;
@@ -942,9 +1038,9 @@
                         weight: 2
                     }).bindPopup(`
                         <div style="font-family:'DM Sans'; padding: 4px;">
-                            <div style="font-weight: 700; color: ${color};">${riskText} Pattern Area</div>
-                            <div style="font-size: 1.1rem; font-weight: 700;">${(risk*100).toFixed(0)}% similarity</div>
-                            <div style="font-size: 0.75rem;">Similar to M${cell.expected_max_magnitude.toFixed(1)} historical patterns</div>
+                            <div style="font-weight: 700; color: ${color};">${simText} Pattern Area</div>
+                            <div style="font-size: 1.1rem; font-weight: 700;">${(sim*100).toFixed(0)}% similarity</div>
+                            <div style="font-size: 0.75rem;">Similar to M${cell.reference_magnitude.toFixed(1)} historical patterns</div>
                             <hr style="margin: 6px 0; border-color: #252b3d;">
                             <div style="font-size: 0.65rem; color: #94a3b8;">Statistical pattern analysis only. Not a prediction.</div>
                         </div>
